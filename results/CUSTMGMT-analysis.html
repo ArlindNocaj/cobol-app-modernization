@@ -1,0 +1,557 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>CUSTMGMT — COBOL Program Analysis</title>
+    <script>
+      (() => {
+        const param = new URLSearchParams(window.location.search).get("clawpilotTheme");
+        const theme =
+          param || (window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");
+        document.documentElement.setAttribute("data-theme", theme);
+      })();
+    </script>
+    <style>
+      :root {
+        color-scheme: light;
+        --cp-bg: #f7f4ef;
+        --cp-bg-elevated: #fcfbf8;
+        --cp-surface: #ffffff;
+        --cp-surface-soft: #f5f5f5;
+        --cp-border: #dedede;
+        --cp-border-strong: #919191;
+        --cp-text: #242424;
+        --cp-text-muted: #5c5c5c;
+        --cp-text-soft: #6f6f6f;
+        --cp-accent: #b11f4b;
+        --cp-accent-hover: #9a1a41;
+        --cp-accent-soft: rgba(177, 31, 75, 0.08);
+        --cp-accent-fg: #ffffff;
+        --cp-success: #16a34a;
+        --cp-danger: #dc2626;
+        --cp-warning: #f59e0b;
+        --cp-link: #0078d4;
+        --cp-shadow: 0 18px 48px rgba(0, 0, 0, 0.12);
+        --cp-overlay: rgba(255, 255, 255, 0.8);
+        --cp-panel: rgba(255, 255, 255, 0.86);
+        --cp-panel-strong: rgba(255, 255, 255, 0.96);
+        --cp-sheen: rgba(255, 255, 255, 0.55);
+        --cp-highlight: rgba(177, 31, 75, 0.12);
+      }
+      html[data-theme="dark"] {
+        color-scheme: dark;
+        --cp-bg: #3d3b3a;
+        --cp-bg-elevated: #343231;
+        --cp-surface: #292929;
+        --cp-surface-soft: #2e2e2e;
+        --cp-border: #474747;
+        --cp-border-strong: #5f5f5f;
+        --cp-text: #dedede;
+        --cp-text-muted: #919191;
+        --cp-text-soft: #b0b0b0;
+        --cp-accent: #fd8ea1;
+        --cp-accent-hover: #fb7b91;
+        --cp-accent-soft: rgba(253, 142, 161, 0.14);
+        --cp-accent-fg: #1a1a1a;
+        --cp-success: #4ade80;
+        --cp-danger: #f87171;
+        --cp-warning: #fbbf24;
+        --cp-link: #4da6ff;
+        --cp-shadow: 0 18px 48px rgba(0, 0, 0, 0.32);
+        --cp-overlay: rgba(41, 41, 41, 0.88);
+        --cp-panel: rgba(41, 41, 41, 0.72);
+        --cp-panel-strong: rgba(41, 41, 41, 0.96);
+        --cp-sheen: rgba(255, 255, 255, 0.04);
+        --cp-highlight: rgba(253, 142, 161, 0.12);
+      }
+
+      * { box-sizing: border-box; }
+      html, body { margin: 0; padding: 0; }
+      body {
+        background: var(--cp-bg);
+        color: var(--cp-text);
+        font-family: "Segoe UI", Aptos, Calibri, -apple-system, BlinkMacSystemFont, sans-serif;
+        line-height: 1.55;
+        font-size: 15px;
+      }
+      .wrap { max-width: 1280px; margin: 0 auto; padding: 32px 28px 64px; }
+
+      header.hero {
+        background: var(--cp-bg-elevated);
+        border: 1px solid var(--cp-border);
+        border-radius: 16px;
+        padding: 28px 32px;
+        margin-bottom: 24px;
+        box-shadow: 0 0 2px rgba(0,0,0,0.12), 0 1px 2px rgba(0,0,0,0.14);
+      }
+      .eyebrow {
+        text-transform: uppercase;
+        letter-spacing: 0.12em;
+        font-size: 12px;
+        color: var(--cp-accent);
+        font-weight: 600;
+      }
+      h1 { font-size: 30px; margin: 6px 0 8px; letter-spacing: -0.01em; }
+      .subtitle { color: var(--cp-text-muted); margin: 0; max-width: 800px; }
+
+      .meta {
+        display: flex; flex-wrap: wrap; gap: 8px; margin-top: 16px;
+      }
+      .chip {
+        display: inline-flex; align-items: center; gap: 6px;
+        background: var(--cp-accent-soft);
+        color: var(--cp-accent);
+        border: 1px solid transparent;
+        padding: 4px 10px; border-radius: 999px;
+        font-size: 12px; font-weight: 600;
+      }
+      .chip.neutral {
+        background: var(--cp-surface-soft); color: var(--cp-text-muted);
+        border-color: var(--cp-border);
+      }
+
+      .grid {
+        display: grid; gap: 20px;
+        grid-template-columns: minmax(0, 1.45fr) minmax(0, 1fr);
+      }
+      @media (max-width: 960px) { .grid { grid-template-columns: 1fr; } }
+
+      .card {
+        background: var(--cp-surface);
+        border: 1px solid var(--cp-border);
+        border-radius: 16px;
+        padding: 22px 24px;
+        box-shadow: 0 0 2px rgba(0,0,0,0.12), 0 1px 2px rgba(0,0,0,0.14);
+      }
+      .card h2 {
+        margin: 0 0 4px; font-size: 18px; letter-spacing: -0.005em;
+      }
+      .card .lede {
+        color: var(--cp-text-muted); margin: 0 0 16px; font-size: 14px;
+      }
+
+      .diagram-box {
+        background: var(--cp-bg-elevated);
+        border: 1px solid var(--cp-border);
+        border-radius: 12px;
+        padding: 16px;
+        overflow: auto;
+      }
+      .mermaid { background: transparent; }
+
+      table { width: 100%; border-collapse: collapse; font-size: 14px; }
+      th, td {
+        text-align: left; padding: 9px 10px;
+        border-bottom: 1px solid var(--cp-border);
+        vertical-align: top;
+      }
+      th {
+        font-weight: 600; color: var(--cp-text-muted);
+        font-size: 12px; text-transform: uppercase; letter-spacing: 0.06em;
+      }
+      tr:last-child td { border-bottom: none; }
+      code, .mono {
+        font-family: Consolas, "Courier New", Courier, monospace;
+        background: var(--cp-surface-soft);
+        padding: 1px 6px; border-radius: 6px;
+        font-size: 13px;
+      }
+
+      .stack > * + * { margin-top: 20px; }
+
+      .step-list { list-style: none; padding: 0; margin: 0; }
+      .step-list li {
+        display: grid; grid-template-columns: 28px 1fr; gap: 12px;
+        padding: 10px 0; border-bottom: 1px dashed var(--cp-border);
+      }
+      .step-list li:last-child { border-bottom: none; }
+      .step-num {
+        width: 26px; height: 26px; border-radius: 50%;
+        background: var(--cp-accent); color: var(--cp-accent-fg);
+        display: inline-flex; align-items: center; justify-content: center;
+        font-size: 12px; font-weight: 700;
+      }
+      .step-title { font-weight: 600; }
+      .step-body { color: var(--cp-text-muted); font-size: 14px; }
+
+      .rule {
+        display: grid; grid-template-columns: 1fr; gap: 4px;
+        padding: 12px 14px;
+        background: var(--cp-accent-soft);
+        border-left: 3px solid var(--cp-accent);
+        border-radius: 8px;
+      }
+      .rule + .rule { margin-top: 10px; }
+      .rule-title { font-weight: 600; color: var(--cp-accent); font-size: 13px; }
+      .rule-body { color: var(--cp-text); font-size: 14px; }
+
+      .kpi-row {
+        display: grid; grid-template-columns: repeat(4, minmax(0,1fr)); gap: 12px;
+        margin: 18px 0 4px;
+      }
+      @media (max-width: 720px) { .kpi-row { grid-template-columns: repeat(2, 1fr); } }
+      .kpi {
+        background: var(--cp-bg-elevated);
+        border: 1px solid var(--cp-border);
+        border-radius: 12px;
+        padding: 14px;
+      }
+      .kpi .v { font-size: 22px; font-weight: 700; color: var(--cp-accent); }
+      .kpi .l { font-size: 12px; color: var(--cp-text-muted); text-transform: uppercase; letter-spacing: 0.06em; }
+
+      .legend {
+        display: flex; gap: 14px; flex-wrap: wrap; margin-top: 10px;
+        font-size: 12px; color: var(--cp-text-muted);
+      }
+      .legend .swatch {
+        display: inline-block; width: 12px; height: 12px;
+        border-radius: 3px; margin-right: 6px; vertical-align: middle;
+      }
+
+      footer.foot {
+        margin-top: 28px; color: var(--cp-text-soft); font-size: 12px; text-align: center;
+      }
+
+      details.repro {
+        background: var(--cp-bg-elevated);
+        border: 1px solid var(--cp-border);
+        border-left: 3px solid var(--cp-accent);
+        border-radius: 12px;
+        padding: 14px 18px;
+        margin-bottom: 20px;
+      }
+      details.repro summary {
+        cursor: pointer;
+        font-weight: 600;
+        color: var(--cp-accent);
+        list-style: none;
+        display: flex; align-items: center; gap: 8px;
+      }
+      details.repro summary::-webkit-details-marker { display: none; }
+      details.repro summary::before {
+        content: "▸"; transition: transform 0.15s ease; display: inline-block;
+      }
+      details.repro[open] summary::before { transform: rotate(90deg); }
+      details.repro .repro-body { margin-top: 12px; color: var(--cp-text); font-size: 14px; }
+      details.repro ol { padding-left: 20px; margin: 8px 0; }
+      details.repro li { margin: 8px 0; }
+      details.repro .prompt {
+        display: block;
+        background: var(--cp-surface);
+        border: 1px solid var(--cp-border);
+        border-radius: 8px;
+        padding: 10px 12px;
+        margin-top: 6px;
+        font-family: Consolas, "Courier New", Courier, monospace;
+        font-size: 13px;
+        white-space: pre-wrap;
+        color: var(--cp-text);
+      }
+      details.repro .ctx {
+        color: var(--cp-text-muted); font-size: 12px; margin-top: 4px;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="wrap">
+      <details class="repro">
+        <summary>How this artifact was generated &nbsp;·&nbsp; reproduction prompts</summary>
+        <div class="repro-body">
+          <p style="margin:6px 0 4px;">
+            This page was produced inside the
+            <code>cobol-app-modernization</code> workspace using GitHub Copilot Chat in agent mode.
+            The relevant context (project conventions, COBOL→Java mapping rules, available custom agents)
+            is loaded automatically from <code>.github/copilot-instructions.md</code>.
+          </p>
+          <p style="margin:6px 0;"><strong>Prompts used, in order:</strong></p>
+          <ol>
+            <li>
+              <em>Analyse the COBOL program</em>
+              <span class="prompt">Analyze this COBOL program and provide a structured summary:
+1. Divisions and sections
+2. All CALL dependencies
+3. All COPY dependencies
+4. A plain-English summary of business logic</span>
+              <div class="ctx">Run with <code>samples/cobol/CUSTMGMT.cbl</code> open or attached as context.</div>
+            </li>
+            <li>
+              <em>Turn the analysis into a presentation-ready HTML</em>
+              <span class="prompt">Can you visualize this in an html, so that I can present it to business, ideally with a flow diagram, and also nice simple explanations on the side?</span>
+              <div class="ctx">The agent uses the <code>web-artifacts-builder</code> skill (Clawpilot theme + Mermaid) to emit a single self-contained HTML file.</div>
+            </li>
+            <li>
+              <em>Save the artifact for reuse</em>
+              <span class="prompt">move the html to a ./results folder, ideally with sample prompts used on top to generate it so that it can be reproduced</span>
+            </li>
+          </ol>
+          <p style="margin:10px 0 0;" class="ctx">
+            To regenerate: open this repo in VS Code with Copilot Chat, attach
+            <code>samples/cobol/CUSTMGMT.cbl</code>, and run the three prompts above in sequence.
+          </p>
+        </div>
+      </details>
+
+      <header class="hero">
+        <div class="eyebrow">COBOL Program Analysis · Migration Toolkit</div>
+        <h1>CUSTMGMT — Customer Master CRUD Service</h1>
+        <p class="subtitle">
+          A single-entry mainframe program that handles every Add, Update, Delete and Inquiry
+          against the customer master file. This page summarises what it does, what it depends on,
+          and the business rules our Java replacement must preserve.
+        </p>
+        <div class="meta">
+          <span class="chip">PROGRAM-ID: CUSTMGMT</span>
+          <span class="chip neutral">Source: COBOL (z/OS)</span>
+          <span class="chip neutral">File: PROD.CUST.MASTER (VSAM, indexed)</span>
+          <span class="chip neutral">Target: Java 17 · Spring Boot 3.2</span>
+        </div>
+
+        <div class="kpi-row">
+          <div class="kpi"><div class="v">4</div><div class="l">Transaction types</div></div>
+          <div class="kpi"><div class="v">1</div><div class="l">External CALL (CUSTVAL)</div></div>
+          <div class="kpi"><div class="v">1</div><div class="l">COPY dependency (CUST-REC)</div></div>
+          <div class="kpi"><div class="v">5%</div><div class="l">Discount over $10,000</div></div>
+        </div>
+      </header>
+
+      <div class="grid">
+        <!-- LEFT: diagram + structure -->
+        <div class="stack">
+          <section class="card">
+            <h2>Process flow</h2>
+            <p class="lede">
+              How a caller's request is routed. Green = success path, red = error exits.
+            </p>
+            <div class="diagram-box">
+              <div class="mermaid">
+flowchart TD
+    A([Caller passes request:<br/>type + customer ID + data]) --> B[0000-MAIN<br/>Open CUSTOMER-FILE]
+    B -->|Open fails| ERR1[Return 9999<br/>Open failed]:::err
+    B -->|OK| C{Transaction<br/>type?}
+
+    C -->|A — Add| ADD[1000-ADD-CUSTOMER]
+    C -->|U — Update| UPD[2000-UPDATE-CUSTOMER]
+    C -->|D — Delete| DEL[3000-DELETE-CUSTOMER]
+    C -->|I — Inquiry| INQ[4000-INQUIRE-CUSTOMER]
+    C -->|Other| ERR2[Return 1001<br/>Invalid type]:::err
+
+    ADD --> ADD_R{Already<br/>exists?}
+    ADD_R -->|Yes| ERR3[Return 1002]:::err
+    ADD_R -->|No| POP1[5000-POPULATE-RECORD<br/>CALL CUSTVAL]
+    POP1 --> DISC1[6000-APPLY-DISCOUNT<br/>5% if balance &gt; $10,000]
+    DISC1 --> WR[WRITE record]:::ok
+
+    UPD --> UPD_R{Found?}
+    UPD_R -->|No| ERR4[Return 2001]:::err
+    UPD_R -->|Yes| POP2[5000-POPULATE-RECORD<br/>CALL CUSTVAL]
+    POP2 --> DISC2[6000-APPLY-DISCOUNT]
+    DISC2 --> RW[REWRITE record]:::ok
+
+    DEL --> DEL_R{Found?}
+    DEL_R -->|No| ERR5[Return 3001]:::err
+    DEL_R -->|Yes| DD[DELETE record]:::ok
+
+    INQ --> INQ_R{Found?}
+    INQ_R -->|No| ERR6[Return 4001]:::err
+    INQ_R -->|Yes| RET[Copy fields back to caller]:::ok
+
+    WR --> CLOSE[Close file · GOBACK]
+    RW --> CLOSE
+    DD --> CLOSE
+    RET --> CLOSE
+    ERR1 --> CLOSE
+    ERR2 --> CLOSE
+    ERR3 --> CLOSE
+    ERR4 --> CLOSE
+    ERR5 --> CLOSE
+    ERR6 --> CLOSE
+
+    classDef ok fill:#16a34a22,stroke:#16a34a,color:#16a34a;
+    classDef err fill:#dc262622,stroke:#dc2626,color:#dc2626;
+              </div>
+            </div>
+            <div class="legend">
+              <span><span class="swatch" style="background:#16a34a"></span>Success outcome</span>
+              <span><span class="swatch" style="background:#dc2626"></span>Error / non-zero return code</span>
+              <span><span class="swatch" style="background:var(--cp-border-strong)"></span>Routing / setup</span>
+            </div>
+          </section>
+
+          <section class="card">
+            <h2>Program structure (divisions &amp; paragraphs)</h2>
+            <p class="lede">Standard four-division COBOL layout. The PROCEDURE DIVISION is organised as a dispatcher plus one paragraph per transaction.</p>
+            <table>
+              <thead><tr><th>Division</th><th>Section / Paragraph</th><th>Role</th></tr></thead>
+              <tbody>
+                <tr><td>IDENTIFICATION</td><td><code>PROGRAM-ID. CUSTMGMT</code></td><td>Program metadata</td></tr>
+                <tr><td>ENVIRONMENT</td><td>FILE-CONTROL · <code>CUSTOMER-FILE</code></td><td>VSAM indexed file, key <code>CUST-ID</code></td></tr>
+                <tr><td>DATA</td><td>FILE SECTION · WORKING-STORAGE · LINKAGE</td><td>Record layout (copybook), flags, caller payload</td></tr>
+                <tr><td rowspan="7">PROCEDURE</td><td><code>0000-MAIN</code></td><td>Open file, dispatch on transaction type, close</td></tr>
+                <tr><td><code>1000-ADD-CUSTOMER</code></td><td>Insert with duplicate check</td></tr>
+                <tr><td><code>2000-UPDATE-CUSTOMER</code></td><td>Read + REWRITE</td></tr>
+                <tr><td><code>3000-DELETE-CUSTOMER</code></td><td>Read + DELETE</td></tr>
+                <tr><td><code>4000-INQUIRE-CUSTOMER</code></td><td>Read + return data to caller</td></tr>
+                <tr><td><code>5000-POPULATE-RECORD</code></td><td>Map input fields · invoke validator</td></tr>
+                <tr><td><code>6000-APPLY-DISCOUNT</code></td><td>5% discount when balance &gt; $10,000</td></tr>
+              </tbody>
+            </table>
+          </section>
+
+          <section class="card">
+            <h2>Dependencies</h2>
+            <p class="lede">Other programs this service relies on, and shared record definitions.</p>
+            <h3 style="margin:8px 0 6px; font-size:14px; color:var(--cp-text-muted); text-transform:uppercase; letter-spacing:0.06em;">CALL — external programs</h3>
+            <table>
+              <thead><tr><th>Program</th><th>Called from</th><th>Purpose</th></tr></thead>
+              <tbody>
+                <tr>
+                  <td><code>CUSTVAL</code></td>
+                  <td><code>5000-POPULATE-RECORD</code></td>
+                  <td>Field-level customer validation — invoked on every Add and Update.</td>
+                </tr>
+              </tbody>
+            </table>
+            <h3 style="margin:18px 0 6px; font-size:14px; color:var(--cp-text-muted); text-transform:uppercase; letter-spacing:0.06em;">COPY — shared layouts</h3>
+            <table>
+              <thead><tr><th>Copybook</th><th>Used as</th><th>Contains</th></tr></thead>
+              <tbody>
+                <tr>
+                  <td><code>CUST-REC</code></td>
+                  <td>FD record for <code>CUSTOMER-FILE</code></td>
+                  <td>Customer ID (key), name, address, balance (packed decimal), status (A/I/S), last-update, up to 3 phone numbers (H/W/M).</td>
+                </tr>
+              </tbody>
+            </table>
+          </section>
+        </div>
+
+        <!-- RIGHT: business narrative -->
+        <div class="stack">
+          <section class="card">
+            <h2>What it does, in plain English</h2>
+            <p class="lede">A business-friendly walkthrough of one request.</p>
+            <ol class="step-list">
+              <li>
+                <span class="step-num">1</span>
+                <div>
+                  <div class="step-title">A request arrives</div>
+                  <div class="step-body">Another program sends a small package: <em>what to do</em> (Add / Update / Delete / Inquiry), <em>which customer</em>, and a <em>data payload</em>.</div>
+                </div>
+              </li>
+              <li>
+                <span class="step-num">2</span>
+                <div>
+                  <div class="step-title">Open the customer master file</div>
+                  <div class="step-body">If we can't open the file, we stop immediately and report a system error.</div>
+                </div>
+              </li>
+              <li>
+                <span class="step-num">3</span>
+                <div>
+                  <div class="step-title">Route to the right operation</div>
+                  <div class="step-body">A simple switch sends the request to Add, Update, Delete, or Inquiry. Anything else is rejected as invalid.</div>
+                </div>
+              </li>
+              <li>
+                <span class="step-num">4</span>
+                <div>
+                  <div class="step-title">Validate &amp; apply business rules</div>
+                  <div class="step-body">For Add and Update we call the shared <code>CUSTVAL</code> validator, then automatically apply a 5% discount to any balance over $10,000.</div>
+                </div>
+              </li>
+              <li>
+                <span class="step-num">5</span>
+                <div>
+                  <div class="step-title">Persist or return data</div>
+                  <div class="step-body">The customer record is written, updated, deleted, or read back to the caller depending on the request.</div>
+                </div>
+              </li>
+              <li>
+                <span class="step-num">6</span>
+                <div>
+                  <div class="step-title">Close cleanly</div>
+                  <div class="step-body">The file is closed and a return code + message tell the caller exactly what happened.</div>
+                </div>
+              </li>
+            </ol>
+          </section>
+
+          <section class="card">
+            <h2>Business rules to preserve</h2>
+            <p class="lede">These are the rules our modern Java service must carry over without drift.</p>
+
+            <div class="rule">
+              <div class="rule-title">Customer ID is unique</div>
+              <div class="rule-body">An Add for an existing customer is rejected (return code <code>1002</code>). Maps to a unique constraint plus an <code>existsById</code> precheck.</div>
+            </div>
+            <div class="rule">
+              <div class="rule-title">5% discount on balances &gt; $10,000</div>
+              <div class="rule-body">Applied on <strong>every</strong> Add and Update, not just at inquiry time. Overflow is reported as <code>6001</code>.</div>
+            </div>
+            <div class="rule">
+              <div class="rule-title">Money is decimal, never floating point</div>
+              <div class="rule-body">Balance and discount are COBOL packed decimal (COMP-3) → must become <code>BigDecimal</code> in Java. Never <code>double</code> / <code>float</code>.</div>
+            </div>
+            <div class="rule">
+              <div class="rule-title">CUSTVAL is a hard dependency</div>
+              <div class="rule-body">Every Add / Update synchronously validates via the shared <code>CUSTVAL</code> program. It must be migrated or stubbed before this service is functionally complete.</div>
+            </div>
+            <div class="rule">
+              <div class="rule-title">Customers have at most 3 phones</div>
+              <div class="rule-body"><code>CUST-PHONES OCCURS 3 TIMES</code> (type H / W / M) → child table / collection capped at 3 entries.</div>
+            </div>
+            <div class="rule">
+              <div class="rule-title">Status is a fixed set: A / I / S</div>
+              <div class="rule-body">Active, Inactive, Suspended — model as an enum + <code>CHECK</code> constraint.</div>
+            </div>
+          </section>
+
+          <section class="card">
+            <h2>Return codes the caller will see</h2>
+            <p class="lede">Stable contract — must match exactly after migration.</p>
+            <table>
+              <thead><tr><th>Code</th><th>Meaning</th></tr></thead>
+              <tbody>
+                <tr><td><code>0000</code></td><td>Success</td></tr>
+                <tr><td><code>1001</code></td><td>Invalid transaction type</td></tr>
+                <tr><td><code>1002</code></td><td>Add rejected — customer already exists</td></tr>
+                <tr><td><code>1003</code></td><td>Write failed</td></tr>
+                <tr><td><code>2001</code></td><td>Update — customer not found</td></tr>
+                <tr><td><code>2002</code></td><td>Rewrite failed</td></tr>
+                <tr><td><code>3001</code></td><td>Delete — customer not found</td></tr>
+                <tr><td><code>3002</code></td><td>Delete failed</td></tr>
+                <tr><td><code>4001</code></td><td>Inquiry — customer not found</td></tr>
+                <tr><td><code>6001</code></td><td>Discount calculation overflow</td></tr>
+                <tr><td><code>9999</code></td><td>Could not open customer file</td></tr>
+              </tbody>
+            </table>
+          </section>
+        </div>
+      </div>
+
+      <footer class="foot">
+        Generated for business review · Source: <code>../samples/cobol/CUSTMGMT.cbl</code> · Copybook: <code>../samples/cobol/CUST-REC.cpy</code>
+      </footer>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+    <script>
+      const isDark = document.documentElement.getAttribute("data-theme") === "dark";
+      mermaid.initialize({
+        startOnLoad: true,
+        theme: isDark ? "dark" : "base",
+        themeVariables: {
+          fontFamily: '"Segoe UI", Aptos, Calibri, -apple-system, sans-serif',
+          primaryColor: isDark ? "#343231" : "#fcfbf8",
+          primaryTextColor: isDark ? "#dedede" : "#242424",
+          primaryBorderColor: isDark ? "#5f5f5f" : "#919191",
+          lineColor: isDark ? "#919191" : "#5c5c5c",
+          secondaryColor: isDark ? "#292929" : "#f5f5f5",
+          tertiaryColor: isDark ? "#3d3b3a" : "#f7f4ef"
+        },
+        flowchart: { htmlLabels: true, curve: "basis" }
+      });
+    </script>
+  </body>
+</html>

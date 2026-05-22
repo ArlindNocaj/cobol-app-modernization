@@ -15,3 +15,6 @@ Thumbs.db
 # Editors
 *.swp
 *.swo
+
+# Generated Spring Boot service (local only)
+services/
